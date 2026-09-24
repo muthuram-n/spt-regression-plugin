@@ -20,14 +20,16 @@ Prerequisites: Claude Code, Node.js 18+, Salesforce CLI (`sf`), a Salesforce DX 
 
 **From a terminal (one line):**
 ```
-claude plugin marketplace add muthuram-n/spt-regression-plugin && claude plugin install spt@spt-marketplace
+claude plugin marketplace add https://github.com/muthuram-n/spt-regression-plugin.git && claude plugin install spt@spt-marketplace
 ```
 
 **Or inside the Claude Code chat in VS Code:**
 ```
-/plugin marketplace add muthuram-n/spt-regression-plugin
+/plugin marketplace add https://github.com/muthuram-n/spt-regression-plugin.git
 /plugin install spt@spt-marketplace
 ```
+Use the full `https://` address as shown. The short form `muthuram-n/spt-regression-plugin` downloads over SSH and fails with "Plugin spt not found in marketplace" on machines without a GitHub SSH key.
+
 Restart Claude Code if the `/spt:` commands don't appear. Update later with `/plugin marketplace update spt-marketplace`.
 
 > `npx skills add muthuram-n/spt-regression-plugin` is **not** a substitute: it copies only the skill files, not the commands, agents, hooks or scripts, so the `/spt:` workflow will not work.
@@ -37,7 +39,7 @@ Commit this to each client project's `.claude/settings.json` so everyone who ope
 ```json
 {
   "extraKnownMarketplaces": {
-    "spt-marketplace": { "source": { "source": "github", "repo": "muthuram-n/spt-regression-plugin" } }
+    "spt-marketplace": { "source": { "source": "git", "url": "https://github.com/muthuram-n/spt-regression-plugin.git" } }
   },
   "enabledPlugins": { "spt@spt-marketplace": true }
 }
