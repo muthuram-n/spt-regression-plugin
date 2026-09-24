@@ -1,0 +1,7 @@
+{
+  "name": "spt",
+  "version": "0.1.0",
+  "description": "SPT Regression as a Service: Requirement -> Blast Radius -> Regression Scenarios -> Human Approval -> Sandbox Run -> Failure Analysis -> Remediation",
+  "author": { "name": "Aphex Solutions - SPT" },
+  "keywords": ["salesforce", "regression", "testing", "blast-radius", "impact-analysis", "sfdx"]
+}

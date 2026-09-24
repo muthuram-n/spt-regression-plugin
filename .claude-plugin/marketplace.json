@@ -1,0 +1,15 @@
+{
+  "name": "spt-marketplace",
+  "owner": { "name": "Aphex Solutions - SPT" },
+  "metadata": {
+    "description": "Salesforce regression testing (Regression as a Service) plugins for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "spt",
+      "source": "./plugins/spt",
+      "description": "Requirement-driven Salesforce regression testing: blast radius analysis, scenario generation, human approval gate, sandbox execution and failure remediation.",
+      "version": "0.1.0"
+    }
+  ]
+}
