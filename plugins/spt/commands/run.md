@@ -1,5 +1,5 @@
 ---
-description: Execute the approved regression tests in a sandbox and analyse failures
+description: "[Step 3 of 3] Run the approved regression tests in a sandbox, then explain failures and give remediation steps"
 argument-hint: "<sandbox-org-alias>"
 disable-model-invocation: true
 allowed-tools: Bash(node:*), Bash(sf:*), Read, Write, Edit, Grep, Glob, Task
@@ -19,4 +19,4 @@ Target org: `$ARGUMENTS`
 4. Parse: `node "${CLAUDE_PLUGIN_ROOT}/scripts/parse-results.mjs"`.
 5. If there are compile errors (`componentErrors`), fix the generated test class (never the org's production code) and re-run up to 2 times. Record each attempt in the report.
 6. Delegate to the **failure-analyst** agent to produce `failure-report.md`.
-7. Show the user: pass/fail/manual summary table, then the failed scenarios with a one-line reason each, and point to `failure-report.md` for root cause and remediation. List manual scenarios as a checklist for the tester.
+7. Show the user: pass/fail/manual summary table, then the failed scenarios with a one-line reason each, and point to `failure-report.md` for root cause and remediation. List manual scenarios as a checklist for the tester. If new org knowledge was proposed, suggest `/spt:learn`.

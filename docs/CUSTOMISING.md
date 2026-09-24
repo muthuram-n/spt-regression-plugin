@@ -5,6 +5,7 @@ All client-specific settings live in the client project's `spt.config.json`, not
 | Setting | Purpose |
 |---|---|
 | `metadataPaths` | Source folders to index (multiple package dirs supported) |
+| `orgKnowledgeFile` | Client-specific behaviour file (default `spt-org-knowledge.md`) |
 | `allowedOrgs` | Sandbox aliases SPT may deploy/test against |
 | `blockedOrgPatterns` | Alias substrings always refused |
 | `execution.mode` | `validate` (check-only, recommended) or `deploy` |
@@ -12,8 +13,12 @@ All client-specific settings live in the client project's `spt.config.json`, not
 | `blastRadius.excludeComponents` | Keys like `Flow:Legacy_Unused` to ignore |
 | `approval.minApprovedScenarios` | Minimum ticked scenarios |
 
-## Client-specific knowledge
-Add a `CLAUDE.md` in the client project with things like: trigger framework name, test data factory class, integration users, managed packages, bypass custom permissions. The agents read project `CLAUDE.md` automatically.
+## Client-specific (org) knowledge
+`/spt:init` creates `spt-org-knowledge.md` from the template and pre-fills what it can detect. Complete it with the business glossary, trigger framework, bypass mechanisms, test data factory, integration users, managed packages and known org behaviours. Every agent reads it.
+
+After each run, agents propose new org-specific facts in `.spt/runs/<id>/org-knowledge-proposals.md`. A person accepts or rejects them with `/spt:learn`, which merges accepted facts into the file. Commit the file so the whole team benefits.
+
+Rule of thumb: if it would be true in any Salesforce org, it belongs in the plugin skills. If it is true only for this client, it belongs in `spt-org-knowledge.md`.
 
 ## Extending the plugin
 - New component types: add a matcher in `scripts/build-metadata-index.mjs`.

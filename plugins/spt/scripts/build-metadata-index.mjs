@@ -37,10 +37,19 @@ function refsIn(text, contextObject = null) {
   const foundFields = new Set();
   if (!text) return { objects: [], fields: [] };
   for (const o of objects) if (new RegExp(`\\b${escape(o)}\\b`).test(text)) foundObjects.add(o);
+  // Objects a snippet is "about" even without an explicit contextObject arg (e.g. an Apex
+  // class with no single owning object): any object name literally present in the source
+  // (SOQL FROM, List<Obj>, new Obj(), Schema.Obj, etc.) counts as in-scope for bare/dot-qualified
+  // field matching below.
+  const contextObjects = new Set(foundObjects);
+  if (contextObject) contextObjects.add(contextObject);
   for (const f of fields.keys()) {
     const [o, fld] = f.split('.');
     if (new RegExp(`\\b${escape(o)}\\.${escape(fld)}\\b`).test(text)) foundFields.add(f);
-    else if (contextObject === o && new RegExp(`(?<![\\w.])${escape(fld)}\\b`).test(text)) foundFields.add(f);
+    else if (contextObjects.has(o) && (
+      new RegExp(`(?<![\\w.])${escape(fld)}\\b`).test(text) || // bare: formulas, Flow <field>Name__c</field>
+      new RegExp(`\\.${escape(fld)}\\b`).test(text)             // dot-qualified: opp.Discount__c, Trigger.new[0].Discount__c
+    )) foundFields.add(f);
   }
   // Standard field references written as Object.Field (e.g. Opportunity.StageName)
   for (const mm of text.matchAll(/\b([A-Z][A-Za-z0-9_]*)\.([A-Z][A-Za-z0-9_]*)\b/g)) {
@@ -49,6 +58,19 @@ function refsIn(text, contextObject = null) {
   return { objects: [...foundObjects], fields: [...foundFields] };
 }
 function escape(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Fields a snippet writes to (assignment, not comparison) among the objects it's in scope for.
+// Lets Apex classes/triggers feed the depth>1 blast-radius traversal the same way Flow recordUpdates do.
+function writesIn(text, contextObjectsArr) {
+  const contextObjects = new Set(contextObjectsArr);
+  const writes = new Set();
+  for (const f of fields.keys()) {
+    const [o, fld] = f.split('.');
+    if (!contextObjects.has(o)) continue;
+    if (new RegExp(`\\.${escape(fld)}\\s*=(?!=)`).test(text) || new RegExp(`(?<![\\w.])${escape(fld)}\\s*=(?!=)`).test(text)) writes.add(f);
+  }
+  return [...writes];
+}
 
 // Pass 2: automation and other components
 for (const root of roots) {
@@ -90,12 +112,15 @@ for (const root of roots) {
     } else if ((m = n.match(/\/triggers\/([^/]+)\.trigger$/))) {
       const src = read();
       const hdr = src.match(/trigger\s+\w+\s+on\s+(\w+)\s*\(([^)]*)\)/i);
-      components.push({ key: `ApexTrigger:${m[1]}`, type: 'ApexTrigger', name: m[1], object: hdr ? hdr[1] : null, path: rel(file), active: true,
-        meta: { events: hdr ? hdr[2].replace(/\s+/g, ' ').trim() : null }, refs: refsIn(src, hdr ? hdr[1] : null) });
+      const triggerObject = hdr ? hdr[1] : null;
+      const refs = refsIn(src, triggerObject);
+      components.push({ key: `ApexTrigger:${m[1]}`, type: 'ApexTrigger', name: m[1], object: triggerObject, path: rel(file), active: true,
+        meta: { events: hdr ? hdr[2].replace(/\s+/g, ' ').trim() : null }, refs, writes: writesIn(src, refs.objects) });
     } else if ((m = n.match(/\/classes\/([^/]+)\.cls$/))) {
       const src = read();
+      const refs = refsIn(src);
       components.push({ key: `ApexClass:${m[1]}`, type: 'ApexClass', name: m[1], path: rel(file), active: true,
-        meta: { isTest: /@isTest/i.test(src) }, refs: refsIn(src) });
+        meta: { isTest: /@isTest/i.test(src) }, refs, writes: writesIn(src, refs.objects) });
     } else if ((m = n.match(/\/layouts\/([^/]+)\.layout-meta\.xml$/))) {
       const xml = read(); const obj = m[1].split('-')[0];
       components.push({ key: `Layout:${m[1]}`, type: 'Layout', name: m[1], object: obj, path: rel(file),

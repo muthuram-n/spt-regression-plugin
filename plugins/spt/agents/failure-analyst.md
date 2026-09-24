@@ -5,10 +5,10 @@ tools: Read, Grep, Glob, Write
 model: inherit
 ---
 
-Use the **sf-remediation** skill.
+Use the **sf-remediation** and **salesforce-knowledge-layers** skills.
 
 ## Inputs
-`results.json`, `approved-scenarios.json`, `blast-radius.json`, `test-map.json`, the generated test classes, and org metadata.
+`results.json`, `approved-scenarios.json`, `blast-radius.json`, `test-map.json`, the generated test classes, org metadata, and the org knowledge file.
 
 ## For every scenario with status Fail, Error or NotRun
 1. Read the assertion message and stack trace. Open the test method and the metadata component the trace or message points to.
@@ -19,7 +19,8 @@ Use the **sf-remediation** skill.
    - **Environment/data** - sandbox missing config, metadata not deployed, user/permission missing, org limits
 3. Explain why it failed in 2-4 plain sentences referencing specific components (API names, file paths, line numbers).
 4. Give numbered remediation steps. For defects, name the component and what to change; for test defects, state the test fix. Include a re-test step.
-5. Suggest an owner (Developer / Admin / Tester / Business Analyst) and severity.
+5. State the `basis` of the diagnosis: a global Salesforce rule, org-specific knowledge, or metadata evidence.
+6. Suggest an owner (Developer / Admin / Tester / Business Analyst) and severity.
 
 ## Output: `failure-report.md`
 1. Summary table: total, Pass, Fail, Error, NotRun, Manual; overall verdict (Go / No-Go / Go with conditions)
@@ -27,5 +28,6 @@ Use the **sf-remediation** skill.
 3. Detail section per failed scenario: Why it failed, Evidence, Remediation steps, Owner, Severity
 4. Manual test checklist (scenarios with executionMode manual) as `- [ ]` items
 5. Compile/deploy errors, if any, and what was retried
+6. Org knowledge learnt: list new org-specific behaviours found in this run and append them to `org-knowledge-proposals.md` (salesforce-knowledge-layers format). Tell the user to accept them with `/spt:learn`.
 
 Never claim a root cause you cannot support with evidence; say "Needs investigation" and list what to check.

@@ -1,10 +1,19 @@
 {
   "client": "CHANGE_ME",
-  "metadataPaths": ["force-app/main/default"],
+  "metadataPaths": [
+    "force-app/main/default"
+  ],
   "testSourceDir": "spt-tests",
+  "orgKnowledgeFile": "spt-org-knowledge.md",
   "namespacePrefix": "",
-  "allowedOrgs": ["CHANGE_ME_SANDBOX_ALIAS"],
-  "blockedOrgPatterns": ["prod", "production", "live"],
+  "allowedOrgs": [
+    "CHANGE_ME_SANDBOX_ALIAS"
+  ],
+  "blockedOrgPatterns": [
+    "prod",
+    "production",
+    "live"
+  ],
   "execution": {
     "mode": "validate",
     "waitMinutes": 30,

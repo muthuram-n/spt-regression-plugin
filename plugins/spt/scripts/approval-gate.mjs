@@ -32,17 +32,20 @@ if (cmd === 'freeze') {
   const min = cfg.approval?.minApprovedScenarios ?? 1;
   if (approved.length < min) { console.error(`Only ${approved.length} scenario(s) ticked; at least ${min} required. Tick "- [x] SC-###" lines in scenarios.md.`); process.exit(1); }
 
+  const run = readJson(path.join(dir, 'run.json'));
   const record = {
-    status: 'approved', approver, approvedAt: new Date().toISOString(),
+    status: 'approved', approver, approvedAt: new Date().toISOString(), blastRadiusHash: run.blastRadius?.hash || null,
     approvedCount: approved.length, rejected: [...rejected], hash: hashOf(approved), scenarios: approved
   };
   writeJson(approvedFile, record);
-  const run = readJson(path.join(dir, 'run.json')); run.status = 'approved'; writeJson(path.join(dir, 'run.json'), run);
+  run.status = 'approved'; writeJson(path.join(dir, 'run.json'), run);
   console.log(JSON.stringify({ approved: approved.length, rejected: rejected.size, approver, file: approvedFile }, null, 2));
 } else if (cmd === 'verify') {
   if (!fs.existsSync(approvedFile)) { console.error('NOT APPROVED: no approved-scenarios.json. A human must run /spt:approve.'); process.exit(2); }
   const rec = readJson(approvedFile);
   if (rec.status !== 'approved' || hashOf(rec.scenarios) !== rec.hash) { console.error('APPROVAL INVALID: approved scenarios were modified after approval. Re-run /spt:approve.'); process.exit(2); }
+  const brHash = readJson(path.join(dir, 'run.json')).blastRadius?.hash || null;
+  if (rec.blastRadiusHash && rec.blastRadiusHash !== brHash) { console.error('APPROVAL INVALID: the blast radius was re-finalised after approval. Re-run /spt:generate and /spt:approve.'); process.exit(2); }
   console.log(JSON.stringify({ ok: true, approver: rec.approver, approvedAt: rec.approvedAt, count: rec.approvedCount }));
 } else if (cmd === 'revoke') {
   if (fs.existsSync(approvedFile)) fs.unlinkSync(approvedFile);
