@@ -1,16 +1,32 @@
 # Architecture
 
-## Design principle: deterministic scripts + reasoning agents
+## Design principle: one guided skill, deterministic scripts, reasoning agents, human gates
 | Concern | Done by | Why |
 |---|---|---|
-| Parse metadata, build dependency graph, traverse | Node scripts (`build-metadata-index`, `blast-radius`) | Fast, repeatable, no token cost, same answer every time |
-| Map business language → API names, verify dependencies, order-of-execution reasoning | `blast-radius-analyst` agent | Needs judgement; scripts are regex-based and produce false positives/negatives |
-| Blast radius finalisation | Human review + `finalize-blast-radius.mjs` | Locks scope before scenarios are designed |
-| Scenario design | `test-designer` agent + `regression-scenario-design` skill | Judgement, domain heuristics |
-| Approval | Human + `approval-gate.mjs` | Must not be delegable to the model |
-| Execution | `sf` CLI | Real org automation (flows, triggers, VRs) runs inside Apex tests |
-| Result parsing | `parse-results.mjs` | Deterministic mapping via `SC_###` method prefix |
-| Diagnosis & remediation | `failure-analyst` agent + `sf-remediation` skill | Judgement |
+| Workflow order and the questions asked | `start` skill (`/spt:start`) | One entry point; the user never has to remember commands |
+| Recording approvals, refusing out-of-order steps | `workflow.mjs`, `approval-gate.mjs`, `requireGate()` in every stage script | Gates hold even if the model tries to skip ahead |
+| Audit of every question and answer | `record-decision.mjs` hook (PostToolUse on AskUserQuestion) | Captured by Claude Code, not written by the model |
+| Protecting approval state | `guard-files.mjs` hook (PreToolUse on Write/Edit) | The model cannot edit `run.json` / `approved-scenarios.json` directly |
+| Parse metadata, build dependency graph, traverse | `build-metadata-index.mjs`, `blast-radius.mjs` | Fast, repeatable, no token cost |
+| Map business language to API names, verify dependencies, order-of-execution reasoning | `blast-radius-analyst` agent + `sf-metadata-analysis` skill | Needs judgement; the scripts are regex-based |
+| Test case design | `test-designer` agent + `regression-scenario-design` skill | Judgement, domain heuristics |
+| Execution | `apex-test-author` agent + `sf` CLI | Real org automation (flows, triggers, VRs) runs inside Apex tests |
+| Result parsing | `parse-results.mjs` | Deterministic mapping via the `SC_###` method prefix |
+| Diagnosis and recommendations | `failure-analyst` agent + `sf-remediation` skill | Judgement |
+| Excel deliverables | `export-xlsx.mjs` (zero-dependency writer in `lib/xlsx.mjs`) | Same layout every run |
+
+## Stages and gates
+| # | Stage | Gate (recorded in `run.json.gates`) | Deliverable |
+|---|---|---|---|
+| 1 | Upload requirement | – | `requirement.*` |
+| 2 | Approval to analyse | `analysis` | – |
+| 3 | Impact analysis | – | `impact-analysis.xlsx` |
+| 4 | Test cases & Regression Test Pack | `testgen` (also locks the analysis via `finalize-blast-radius.mjs`) | `regression-test-pack.xlsx` |
+| 5 | Approval before execution | `execution` (`approval-gate.mjs freeze` / `reject`) | `approved-scenarios.json` |
+| 6 | Execution results | – | `test-results.xlsx` |
+| 7 | Failure analysis & recommendations | `failures` | `failure-analysis.xlsx` |
+
+A gate can only be approved after the previous one. A "no" stops the run (`status: stopped_at_<gate>`). `workflow.mjs status` returns the next stage, which lets `/spt:start` resume a run. `workflow.mjs reset-execution` archives the last execution to `attempt-<n>/` for a re-run.
 
 ## Repository layout
 ```
@@ -18,10 +34,10 @@ spt-regression-plugin/
 ├── .claude-plugin/marketplace.json      # makes this repo installable as a marketplace
 ├── plugins/spt/
 │   ├── .claude-plugin/plugin.json
-│   ├── commands/        init, analyze, finalize, generate, approve, run, report, status, full, learn
+│   ├── skills/          start (the guided workflow), sf-metadata-analysis, regression-scenario-design,
+│   │                    sf-remediation, salesforce-knowledge-layers
 │   ├── agents/          blast-radius-analyst, test-designer, apex-test-author, failure-analyst
-│   ├── skills/          sf-metadata-analysis, regression-scenario-design, sf-remediation, salesforce-knowledge-layers
-│   ├── hooks/hooks.json PreToolUse guard on Bash
+│   ├── hooks/hooks.json org guard (Bash), approval-file guard (Write/Edit), decision audit (AskUserQuestion)
 │   ├── scripts/         Node 18+, zero dependencies
 │   └── templates/       spt.config.json, org-knowledge.md, requirement template, scenario schema
 ├── examples/requirements/
@@ -29,17 +45,7 @@ spt-regression-plugin/
 ```
 
 ## Why Apex tests (and what they can't cover)
-Apex tests in a sandbox execute the org's real flows, triggers, validation rules, roll-ups and sharing, which covers most of a typical blast radius. They cannot assert UI (layouts, LWC rendering, Lightning pages), email content, or receipt by external systems. Those scenarios are generated with `executionMode: "manual"` and appear as a checklist in the failure report. UI automation (e.g. Playwright/Provar) can be added later as a second executor.
-
-## The three steps
-| Step | Commands | Gate at the end |
-|---|---|---|
-| 1. Analyse requirement & blast radius | `/spt:analyze`, `/spt:finalize` | `run.json.blastRadius.hash` (finalise) |
-| 2. Create regression tests | `/spt:generate`, `/spt:approve` | `approved-scenarios.json` hash (human only) |
-| 3. Run regression tests | `/spt:run`, `/spt:report` | n/a: produces `failure-report.md` |
+Apex tests in a sandbox execute the org's real flows, triggers, validation rules, roll-ups and sharing, which covers most of a typical blast radius. They cannot assert UI (layouts, LWC rendering, Lightning pages), email content, or receipt by external systems. Those test cases are generated with `executionMode: "manual"` and appear as a checklist in `test-results.xlsx`. UI automation (e.g. Playwright or Provar) can be added later as a second executor.
 
 ## Knowledge layers
 Global Salesforce rules live in the plugin skills and are the same for every client. Org-specific behaviour lives in the client repo's `spt-org-knowledge.md` and is never written into the plugin. Precedence: metadata > org knowledge > global rule > assumption. See the `salesforce-knowledge-layers` skill.
-
-## Run state machine
-`analysing → blast_radius_finalised → approved → executed` (stored in `run.json`; scenarios and reports are tracked by the files in the run folder).

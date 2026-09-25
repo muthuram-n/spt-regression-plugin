@@ -9,7 +9,7 @@ import path from 'node:path';
 import { loadConfig, currentRunId, RUNS_DIR, readJson, sha256 } from './lib/common.mjs';
 
 let input = '';
-try { input = fs.readFileSync(0, 'utf8'); } catch { process.exit(0); }
+try { input = fs.readFileSync(0, 'utf8').trim(); } catch { process.exit(0); }
 let command = '';
 try { command = JSON.parse(input)?.tool_input?.command || ''; } catch { process.exit(0); }
 
@@ -34,9 +34,9 @@ const touchesSptTests = command.includes(cfg.testSourceDir || 'spt-tests') || /S
 if (touchesSptTests) {
   const runId = currentRunId();
   const f = runId && path.join(RUNS_DIR, runId, 'approved-scenarios.json');
-  if (!f || !fs.existsSync(f)) block('No human approval for the current run. A reviewer must tick scenarios in scenarios.md and run /spt:approve before tests can run.');
+  if (!f || !fs.existsSync(f)) block('No human approval for the current run. The user must approve test execution in the /spt:start workflow before tests can run.');
   const rec = readJson(f);
   const hash = sha256(JSON.stringify(rec.scenarios.map(({ testMethod, ...s }) => s)));
-  if (rec.status !== 'approved' || hash !== rec.hash) block('Approved scenarios changed after approval. Re-run /spt:approve.');
+  if (rec.status !== 'approved' || hash !== rec.hash) block('Approved test cases changed after approval. Ask the user to approve again in /spt:start.');
 }
 process.exit(0);

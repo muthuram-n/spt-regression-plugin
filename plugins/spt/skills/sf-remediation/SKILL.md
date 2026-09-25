@@ -24,4 +24,4 @@ Regression defect, Requirement defect, Test defect, Environment/data. Distinguis
 ## Remediation step format
 1. Component to change (API name + path)
 2. Specific change
-3. Re-run: `/spt:run <alias>` (approval remains valid if scenarios are unchanged)
+3. Re-test: deploy the fix to the sandbox, then run `/spt:start` and choose to re-run the approved tests (approval stays valid while the test cases are unchanged)

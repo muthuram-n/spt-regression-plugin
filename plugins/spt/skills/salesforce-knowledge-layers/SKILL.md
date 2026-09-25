@@ -18,7 +18,7 @@ Every conclusion SPT reaches must say which layer it rests on.
 1. Read the org knowledge file at the start of every task. If it is missing, continue with global rules and say so.
 2. Precedence: **metadata** > **org-knowledge** > **global-rule** > **assumption**. If org knowledge contradicts the metadata, trust the metadata and flag the stale entry as an org-knowledge proposal.
 3. Tag every blast-radius component, scenario assumption and root cause with its `basis` (`metadata`, `org-knowledge`, `global-rule`, `assumption`).
-4. Never write org-specific facts into the plugin. Anything learnt about one org goes into that run's `org-knowledge-proposals.md`, and a human accepts it with `/spt:learn`.
+4. Never write org-specific facts into the plugin. Anything learnt about one org goes into that run's `org-knowledge-proposals.md`, and a human accepts it at the end of the guided workflow (`/spt:start`).
 5. Propose an org-knowledge entry when you discover something that (a) is not standard Salesforce behaviour, (b) would change a future blast radius, scenario or diagnosis, and (c) is backed by evidence (file path, error message, or reviewer statement).
 
 ## Proposal format (`org-knowledge-proposals.md`)

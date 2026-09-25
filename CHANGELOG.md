@@ -1,4 +1,12 @@
 # Changelog
+## 0.3.0
+- **One guided, skill-based workflow.** `/spt:start` replaces the ten separate commands and walks the user through seven stages: upload requirement, approval to analyse, impact analysis, test cases and Regression Test Pack, approval before execution, execution results, failure analysis and recommendations. It resumes a stopped run, and offers to re-run the approved tests after a fix.
+- **Human approval at every critical stage.** Gates `analysis`, `testgen`, `execution` and `failures` are asked with Yes/No buttons, recorded in `run.json` by `workflow.mjs` / `approval-gate.mjs`, and enforced by the stage scripts (`blast-radius.mjs`, `finalize-blast-radius.mjs`, `approval-gate.mjs`). A "No" stops the workflow.
+- **Excel deliverables** (`export-xlsx.mjs`, zero dependencies): `impact-analysis.xlsx`, `regression-test-pack.xlsx`, `test-results.xlsx`, `failure-analysis.xlsx`. The blast-radius analyst now also outputs dependencies, risks and overall risk; the failure analyst outputs `failure-analysis.json`.
+- New hooks: `record-decision.mjs` logs every question and answer to `decisions.log.jsonl`; `guard-files.mjs` blocks direct edits to approval state.
+- `approval-gate.mjs` gains `freeze --all` and `reject`; `workflow.mjs reset-execution` archives previous results to `attempt-<n>/`.
+- Removed commands: init, analyze, finalize, generate, approve, run, report, status, full, learn. Their behaviour now lives in the `start` skill.
+
 ## 0.2.0
 - Workflow is now three explicit steps. Every command description is labelled `[Step 1 of 3]`, `[Step 2 of 3]`, `[Step 3 of 3]`, `[Setup]`, `[Knowledge]` or `[Utility]`.
 - New `/spt:finalize` (end of Step 1): the reviewer adds, removes or re-rates components and answers open questions, then the blast radius is hash-locked. `/spt:generate` now requires a finalised blast radius, and an approval becomes invalid if the blast radius is re-finalised.

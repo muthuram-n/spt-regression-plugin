@@ -5,7 +5,9 @@
 // Output: <run>/blast-radius.raw.json  (the analyst agent turns this into the final report)
 import path from 'node:path';
 import fs from 'node:fs';
-import { INDEX_FILE, loadConfig, readJson, writeJson, runDir, args, arg } from './lib/common.mjs';
+import { INDEX_FILE, loadConfig, readJson, writeJson, runDir, args, arg, requireGate } from './lib/common.mjs';
+
+requireGate('analysis');
 
 if (!fs.existsSync(INDEX_FILE)) { console.error('Metadata index missing. Run build-metadata-index.mjs first.'); process.exit(1); }
 const cfg = loadConfig() || {};

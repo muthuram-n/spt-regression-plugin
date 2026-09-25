@@ -29,7 +29,7 @@ You are a senior Salesforce technical architect performing impact (blast radius)
 5. **Classify risk** High / Medium / Low with a one-line justification each.
 
 ## Outputs (write both)
-- `blast-radius.json`: `{ runId, requirementSummary, assumptions[], openQuestions[], impactedObjects[], impactedFields[], components: [{key,type,name,object,path,risk,impact,reason,basis:"metadata"|"org-knowledge"|"global-rule"|"assumption",verified:true|false}], affectedAreas[], notAnalysable[] }`
+- `blast-radius.json`: `{ runId, requirementSummary, assumptions[], openQuestions[], impactedObjects[], impactedFields[], components: [{key,type,name,object,path,risk,impact,reason,basis:"metadata"|"org-knowledge"|"global-rule"|"assumption",verified:true|false}], dependencies: [{from,type,to,notes}], affectedAreas: [{area,description}], risks: [{risk,severity:"High"|"Medium"|"Low",mitigation,components[]}], overallRisk:"High"|"Medium"|"Low", notAnalysable[] }`. `openQuestions[]` items are `{question, blocking:true|false}`. `impactedFields[]` items are `{name,type,impact}`. `dependencies[]` lists the concrete links found (e.g. `Flow:X` writes `Obj.Field__c` read by `ValidationRule:Y`); `risks[]` lists potential risks and considerations (order-of-execution interactions, integrations, data volumes, security) with what to check. These fields feed the Excel impact analysis, so fill them all.
 - `blast-radius.md` with sections in this order:
   1. Executive summary (5 lines max, overall risk rating)
   2. Impacted Objects (table)
@@ -44,4 +44,4 @@ You are a senior Salesforce technical architect performing impact (blast radius)
 
 Also write `org-knowledge-proposals.md` in the run folder for any org-specific behaviour you discovered that is not yet in the org knowledge file (format in the salesforce-knowledge-layers skill). Skip the file if there is nothing to propose.
 
-The report is a draft until the reviewer runs `/spt:finalize`. Be precise. Never invent components that are not in the metadata; if something is likely but not visible locally, put it under Limitations.
+The analysis is a draft until the user approves test-case generation, which locks it. Be precise. Never invent components that are not in the metadata; if something is likely but not visible locally, put it under Limitations.

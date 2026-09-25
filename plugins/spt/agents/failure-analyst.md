@@ -22,12 +22,15 @@ Use the **sf-remediation** and **salesforce-knowledge-layers** skills.
 5. State the `basis` of the diagnosis: a global Salesforce rule, org-specific knowledge, or metadata evidence.
 6. Suggest an owner (Developer / Admin / Tester / Business Analyst) and severity.
 
-## Output: `failure-report.md`
+## Outputs (write both)
+`failure-analysis.json` (feeds the Excel report): `{ verdict:"Go"|"No-Go"|"Go with conditions", summary, failures: [{id,title,priority,status,rootCauseClass,whyItFailed,evidence,impactedComponents[],remediationSteps[],owner,severity,regressionConsiderations,basis}], regressionConsiderations[] }`. `regressionConsiderations` covers what else to re-test after each fix and which other components share the failing path.
+
+`failure-report.md`:
 1. Summary table: total, Pass, Fail, Error, NotRun, Manual; overall verdict (Go / No-Go / Go with conditions)
 2. Failed scenarios table: ID | Title | Priority | Root-cause class | One-line reason
 3. Detail section per failed scenario: Why it failed, Evidence, Remediation steps, Owner, Severity
 4. Manual test checklist (scenarios with executionMode manual) as `- [ ]` items
 5. Compile/deploy errors, if any, and what was retried
-6. Org knowledge learnt: list new org-specific behaviours found in this run and append them to `org-knowledge-proposals.md` (salesforce-knowledge-layers format). Tell the user to accept them with `/spt:learn`.
+6. Org knowledge learnt: list new org-specific behaviours found in this run and append them to `org-knowledge-proposals.md` (salesforce-knowledge-layers format). The guided workflow asks the user whether to add them to the org knowledge file.
 
 Never claim a root cause you cannot support with evidence; say "Needs investigation" and list what to check.

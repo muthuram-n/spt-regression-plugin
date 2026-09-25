@@ -25,7 +25,7 @@ export function currentRunId() {
   return fs.existsSync(CURRENT_FILE) ? fs.readFileSync(CURRENT_FILE, 'utf8').trim() : null;
 }
 export function runDir(runId = currentRunId()) {
-  if (!runId) throw new Error('No active SPT run. Start one with /spt:analyze <requirement-file>.');
+  if (!runId) throw new Error('No active SPT run. Start one with /spt:start.');
   return path.join(RUNS_DIR, runId);
 }
 
@@ -59,3 +59,14 @@ export function tags(xml, name) {
   return [...xml.matchAll(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`, 'g'))].map(m => m[1].trim());
 }
 export function blocks(xml, name) { return tags(xml, name); }
+
+// Human decisions recorded at each workflow gate (see workflow.mjs).
+export const GATES = ['analysis', 'testgen', 'execution', 'failures'];
+export function requireGate(gate, dir = runDir()) {
+  const runFile = path.join(dir, 'run.json');
+  const g = fs.existsSync(runFile) ? JSON.parse(fs.readFileSync(runFile, 'utf8')).gates?.[gate] : null;
+  if (g?.decision !== 'yes') {
+    console.error(`SPT workflow: the "${gate}" stage has not been approved by the user${g?.decision === 'no' ? ' (they declined; the workflow is stopped)' : ''}. Ask the user first via /spt:start.`);
+    process.exit(2);
+  }
+}

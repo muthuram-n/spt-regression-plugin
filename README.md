@@ -1,22 +1,27 @@
 # SPT Regression Plugin for Claude Code
 
-Requirement-driven Salesforce regression testing ("Regression as a Service") packaged as a reusable Claude Code plugin. It replaces the manual prompt-by-prompt process with a fixed set of commands that work for any requirement against any client's Salesforce metadata.
+Requirement-driven Salesforce regression testing ("Regression as a Service") as a Claude Code plugin. It replaces the manual prompt-by-prompt process with **one guided, skill-based workflow** that works for any requirement against any client's Salesforce metadata, and asks for human approval at every critical stage.
 
-When you upload a requirement, the plugin analyses it against the Salesforce metadata already checked out in your VS Code workspace (the SFDX project's `force-app` source) and runs a **Blast Radius Analysis**: it identifies the Salesforce objects, fields, flows, automations, validation rules and other components that could be impacted by the requirement, covering every affected area the local metadata can show.
+## The workflow
+Run **`/spt:start`** in Claude Code (VS Code, CLI or desktop app) inside a Salesforce DX project. The plugin then guides you through seven stages and never moves past an approval gate without your explicit "Yes":
 
-## The three steps
-```
-STEP 1  Analyse requirement & blast radius   /spt:analyze <file>   ->  review  ->  /spt:finalize "Name"
-STEP 2  Create regression tests               /spt:generate         ->  tick [x] in scenarios.md  ->  /spt:approve "Name"   (HUMAN)
-STEP 3  Run regression tests                  /spt:run <sandbox>    ->  failures explained + remediation in failure-report.md
-```
-Setup once per project with `/spt:init <sandbox>`. Use `/spt:status` at any time to see the next command. `/spt:full <file>` runs Steps 1 and 2 in one go and stops at approval.
+| # | Stage | The plugin asks | Output |
+|---|---|---|---|
+| 1 | Upload requirement | **"1. Upload the Requirement?"** (attach, give a path, or paste text; .docx / .pdf / .md / .txt) | Run folder |
+| 2 | Approval to analyse | **"2. Can I start the analysis based on the requirement against the local Salesforce metadata to identify the impacted areas and blast radius?"** | Gate |
+| 3 | Impact analysis | – | **`impact-analysis.xlsx`**: impacted components, dependencies, affected areas, blast radius, relevant metadata, risks and considerations |
+| 4 | Test cases & Regression Test Pack | **"Based on the identified changes and impacts, can I generate the possible test cases and Regression Test Pack?"** | **`regression-test-pack.xlsx`** |
+| 5 | Approval before execution | **"Do you approve executing these test cases in the sandbox?"** Approve all / approve selected / **No: stop, nothing is run** | Hash-locked approval |
+| 6 | Execution results | – | **`test-results.xlsx`**: passed and failed test cases, messages, manual checklist |
+| 7 | Failure analysis | **"Can I show the failure analysis and recommendations?"** | **`failure-analysis.xlsx`**: root cause, impacted components, recommended fixes, regression considerations |
 
-Global Salesforce rules are built into the plugin. Client-specific behaviour lives in the client repo's `spt-org-knowledge.md`, which improves after each run via `/spt:learn`.
+Answering **No** at any gate stops the workflow and records the decision. Run `/spt:start` again to resume where you stopped, start a new requirement, or re-run the approved tests after a fix.
+
+Global Salesforce rules are built into the plugin's skills. Client-specific behaviour lives in the client repo's `spt-org-knowledge.md`, which the workflow offers to update at the end of each run.
 
 ## Install (per user, once)
 
-Prerequisites: Claude Code, Node.js 18+, Salesforce CLI (`sf`), a Salesforce DX project, an authorised **sandbox**.
+Prerequisites: Claude Code, Node.js 18+, Salesforce CLI (`sf`), a Salesforce DX project with its metadata retrieved, an authorised **sandbox**.
 
 **From a terminal (one line):**
 ```
@@ -30,9 +35,11 @@ claude plugin marketplace add https://github.com/muthuram-n/spt-regression-plugi
 ```
 Use the full `https://` address as shown. The short form `muthuram-n/spt-regression-plugin` downloads over SSH and fails with "Plugin spt not found in marketplace" on machines without a GitHub SSH key.
 
-Restart Claude Code if the `/spt:` commands don't appear. Update later with `/plugin marketplace update spt-marketplace`.
+Restart Claude Code, then type `/spt:start`. Update later with `/plugin marketplace update spt-marketplace`.
 
-> `npx skills add muthuram-n/spt-regression-plugin` is **not** a substitute: it copies only the skill files, not the commands, agents, hooks or scripts, so the `/spt:` workflow will not work.
+Claude Code will also ask permission before running the plugin's scripts (`node …`) and Salesforce CLI commands (`sf …`). Those are Claude Code's own tool prompts, separate from the workflow's approval questions; choose "Yes, don't ask again" for `node` to avoid repeated prompts.
+
+> `npx skills add muthuram-n/spt-regression-plugin` is **not** a substitute: it copies only the skill files, not the agents, hooks or scripts the workflow needs.
 
 ### Team-wide install (recommended)
 Commit this to each client project's `.claude/settings.json` so everyone who opens the repo is prompted to install:
@@ -45,41 +52,28 @@ Commit this to each client project's `.claude/settings.json` so everyone who ope
 }
 ```
 
-## Use (per client project)
-
-```
-/spt:init my-uat-sandbox                         # config, sandbox check, metadata index
-/spt:analyze requirements/JIRA-123.docx          # STEP 1: blast radius → .spt/runs/<id>/blast-radius.md
-/spt:finalize "Reviewer Name"                     # STEP 1: apply adjustments, lock the blast radius
-/spt:generate                                    # STEP 2: scenarios → .spt/runs/<id>/scenarios.md
-   ✍  reviewer ticks [x] approved scenarios in scenarios.md
-/spt:approve "Reviewer Name"                     # STEP 2: hash-locked approval
-/spt:run my-uat-sandbox                          # STEP 3: execute, explain failures, remediation
-/spt:report                                      # re-open failure report
-/spt:status                                      # where am I?
-/spt:full requirements/JIRA-123.md               # steps 1-2 in one go, stops at approval
-/spt:learn                                       # accept org-specific learnings into spt-org-knowledge.md
-```
-
 ## What you get per run (`.spt/runs/<runId>/`)
 | File | Content |
 |---|---|
+| `impact-analysis.xlsx` | Stage 3 deliverable (also `blast-radius.md` / `.json`) |
+| `regression-test-pack.xlsx` | Stage 4 deliverable (also `scenarios.md` / `.json`) |
+| `test-results.xlsx` | Stage 6 deliverable (also `results.json`) |
+| `failure-analysis.xlsx` | Stage 7 deliverable (also `failure-report.md` / `failure-analysis.json`) |
 | `requirement.*` | Copy of the uploaded requirement (`.docx` also gets `requirement.extracted.md`) |
-| `blast-radius.md/.json` | Impacted objects, fields, flows, automations, validation rules, other components, affected areas, limitations |
-| `org-knowledge-proposals.md` | Org-specific facts discovered in this run, pending `/spt:learn` |
-| `scenarios.md/.json` | Generated scenarios with coverage matrix (review here) |
-| `approved-scenarios.json` | Approver, timestamp, SHA-256 of the approved set |
-| `test-map.json` | Scenario → Apex test method |
-| `results.json` | Normalised pass/fail per scenario |
-| `failure-report.md` | Why each scenario failed, root-cause class, remediation steps, manual checklist |
+| `run.json` | Every gate decision: who answered, what, and when |
+| `decisions.log.jsonl` | Audit log of each question and the user's answer, captured by a hook |
+| `approved-scenarios.json` | Approver, timestamp and SHA-256 of the approved test cases |
+| `org-knowledge-proposals.md` | Org-specific facts discovered in this run |
+| `attempt-<n>/` | Results of earlier executions when the tests are re-run |
 
-Commit run folders (except raw output) for an audit trail.
+Commit run folders (except raw CLI output) for an audit trail.
 
 ## Safety controls
-- **Blast radius lock**: scenarios are generated only from a finalised blast radius; re-finalising it invalidates any approval.
-- **Human approval gate**: tests can't run without `approved-scenarios.json`; editing approved scenarios invalidates the approval. `/spt:approve` and `/spt:run` can only be invoked by the user.
-- **Org guard hook**: blocks `sf` deploy/test/data commands unless `--target-org` is explicit, is in `allowedOrgs`, and doesn't match `blockedOrgPatterns`.
-- **Sandbox check**: preflight queries `Organization.IsSandbox` and refuses production.
-- **Validate mode (default)**: tests run via check-only deploy, so nothing is left in the sandbox.
+- **Approval gates enforced by scripts**: the analysis, test generation, execution and failure-analysis steps refuse to run until the user's "Yes" for that gate is recorded. "No" stops the workflow.
+- **Approval files are protected**: a hook blocks direct edits to `run.json`, `approved-scenarios.json` and `decisions.log.jsonl`; only the gate scripts write them.
+- **Execution lock**: the Salesforce CLI cannot deploy or run SPT tests without a valid, unchanged approval; changing the analysis or the approved test cases afterwards invalidates it.
+- **Org guard**: `sf` deploy, test and data commands must name `--target-org`, which must be in `allowedOrgs` and must not match `blockedOrgPatterns`.
+- **Sandbox check**: `Organization.IsSandbox` is queried before execution, and production is refused.
+- **Validate mode (default)**: tests run as a check-only deploy, so nothing is left in the sandbox.
 
 Step-by-step user guide: [docs/SPT-Plugin-User-Guide.docx](docs/SPT-Plugin-User-Guide.docx). See also [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/CUSTOMISING.md](docs/CUSTOMISING.md).

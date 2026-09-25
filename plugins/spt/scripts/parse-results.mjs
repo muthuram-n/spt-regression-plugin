@@ -2,7 +2,7 @@
 // Normalises Salesforce CLI JSON test output into <run>/results.json.
 // Accepts output of `sf project deploy validate|start --json` or `sf apex run test --json`.
 // Test methods must be named  SC_###_<description>  so results map back to scenarios.
-// Usage: node parse-results.mjs --input <run>/raw-test-output.json
+// Usage: node parse-results.mjs [--input <run>/raw-test-output.json] [--org <alias>]
 import fs from 'node:fs';
 import path from 'node:path';
 import { runDir, readJson, writeJson, arg } from './lib/common.mjs';
@@ -36,5 +36,5 @@ const scenarioResults = approved.map(s => {
 
 const summary = scenarioResults.reduce((a, r) => (a[r.status] = (a[r.status] || 0) + 1, a), {});
 writeJson(path.join(dir, 'results.json'), { parsedAt: new Date().toISOString(), summary, componentErrors, scenarios: scenarioResults });
-const run = readJson(path.join(dir, 'run.json')); run.status = 'executed'; writeJson(path.join(dir, 'run.json'), run);
+const run = readJson(path.join(dir, 'run.json')); run.status = 'executed'; if (arg('org')) run.targetOrg = arg('org'); run.executedAt = new Date().toISOString(); writeJson(path.join(dir, 'run.json'), run);
 console.log(JSON.stringify({ summary, componentErrors: componentErrors.length }, null, 2));

@@ -2,7 +2,7 @@
 
 Org-specific behaviour the SPT agents cannot infer from generic Salesforce rules or from metadata alone.
 Everything here overrides general assumptions for THIS org only. Keep entries short and factual.
-Maintained by the team; new entries are proposed after each run (`org-knowledge-proposals.md`) and accepted with `/spt:learn`.
+Maintained by the team; new entries are proposed after each run (`org-knowledge-proposals.md`) and accepted by a person at the end of each `/spt:start` run.
 
 ## Business glossary (business term -> API name)
 | Business term | API name | Notes |

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Environment checks used by /spt:init and /spt:run.
+// Environment checks used by the /spt:start workflow before test execution.
 // Usage: node preflight.mjs [--org <alias>]
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -13,7 +13,7 @@ const add = (name, ok, detail) => checks.push({ name, ok, detail });
 add('Node >= 18', Number(process.versions.node.split('.')[0]) >= 18, process.versions.node);
 const sfv = run('sf --version'); add('Salesforce CLI (sf)', !!sfv, sfv?.trim() || 'Install: https://developer.salesforce.com/tools/salesforcecli');
 add('sfdx-project.json', fs.existsSync(path.join(PROJECT_ROOT, 'sfdx-project.json')), PROJECT_ROOT);
-const cfg = loadConfig(); add('spt.config.json', !!cfg, cfg ? 'found' : 'run /spt:init');
+const cfg = loadConfig(); add('spt.config.json', !!cfg, cfg ? 'found' : 'run /spt:start (it sets up the project)');
 if (cfg) for (const p of cfg.metadataPaths) add(`metadata path ${p}`, fs.existsSync(path.join(PROJECT_ROOT, p)), '');
 
 const org = arg('org');
